@@ -21,20 +21,18 @@ mySeat f = filter (not . (`elem`ls))  alls
 list f = map (getSeatID .  parse . convertRow) $ lines f
 
 
-bignsmall xs = (head $ quickSort False xs,head $ quickSort True xs)
-
+bignsmall xs = (last sorted, head sorted )
+	where sorted = quickSort xs
 allSeats :: [Int] -> [Int]
 allSeats xs = let (big,small) = bignsmall xs in [small..big]
 
 
 getSeatID (_,_,a) = a
 
-quickSort b (x:xs) 
-	| b = smaller' ++ [x] ++ bigger'
-	| otherwise = bigger' ++ [x] ++ smaller'
-	where smaller' = quickSort b $ filter (<x) xs
-	      bigger' = quickSort b $ filter (>=x) xs 
-quickSort b [] = []
+quickSort (x:xs) = smaller' ++ [x] ++ bigger'
+	where smaller' = quickSort $ filter (<x) xs
+	      bigger' = quickSort $ filter (>=x) xs 
+quickSort [] = []
 
 parse :: [Position] -> Seat
 parse xs = (row,col,seatID )
