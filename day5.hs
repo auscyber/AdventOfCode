@@ -14,7 +14,7 @@ traceS = id
 main = do
    f <- readFile "day5inp"
    print $ mySeat f 
-mySeat f = filter (\(_,a) -> not a) $ map (\x -> (x,x`elem` ls)) alls
+mySeat f = filter (not . (`elem`ls))  alls
 	where ls = list f
 	      alls = allSeats ls
 
