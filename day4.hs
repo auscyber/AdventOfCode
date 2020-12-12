@@ -1,13 +1,42 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE Arrows #-}
+{-# LANGUAGE MultiWayIf #-}
+module Day4 (main) where
 import System.IO 
 import qualified Control.Category as Cat
 import Control.Arrow
 import Control.Applicative
-import qualified Data.HashMap.Lazy as M
+import qualified Data.HashMap as M
 import qualified Data.Bifunctor
 import Debug.Trace
+import Text.Read
+import Data.Maybe
+import Data.List
+keys = M.fromList ak
+ak :: [(String, String -> Bool)]
+ak = [("cid",const True)
+        ,("byr",\x -> (read x) >= 1920 && (read x) <= 2002)
+        ,("iyr",\x -> (read x) >= 2010 && (read x) <= 2020)
+        ,("eyr",\x -> (read x) >= 2020 && (read x) <= 2030)
+        ,("hgt",\x -> case break (\y -> isNothing (readMaybe [y] :: Maybe Int)) x of {
+                    (v,"cm") ->  read v >= 150 && 193 >= read v;
+                    (v,"in") ->  read v >= 59 && 76 >= read v;
+                    _ -> False;
+})
+        ,("hcl", \x ->  head x == '#' 
+                    &&  length (tail x) == 6 
+                    && length ( filter (`elem` (['a'..'f'] `union` ['0'..'9']) ) (tail x )) == 6 )
+        ,("ecl",\x -> case x of {
+                    "amb" -> True;
+                    "blu" -> True;
+                    "gry" -> True;
+	            "brn" -> True;
+                    "grn" -> True;
+                    "hzl" -> True;
+                    "oth" -> True;
+		     _ -> False })
+        ,("pid",\x -> length x == 9 && (and $ map (`elem` ['0'..'9']) x))]
 
-keys = ["cid","byr","iyr","eyr","hgt","hcl","ecl","pid"]
 main = do
     f <- readFile "day4inp"
     let (_,chunk) = runParser run (f,[])
@@ -17,11 +46,11 @@ main = do
 
 
 prune :: Parser String [Passport] [Passport]
-prune = arr $ \p -> filter (\x -> and $ fmap (flip M.member x) (tail keys) ) p
+prune = arr $ filter (\x ->  and $ map (flip M.member x) (filter (\a -> a/="cid") $ M.keys $ keys))  
 
 parseKey :: String -> Maybe (String,String)
 parseKey x
-    | key `elem` keys = Just inp
+    | key `elem` M.keys keys = let Just b = M.lookup key keys in if b val  then Just (trace (show inp) inp ) else  Nothing
     | otherwise = Nothing
     where inp@(key,val) = let (key,_:val) = break (==':') x in (key,val)
 
