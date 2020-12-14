@@ -49,9 +49,6 @@ run = prune . fold
           fold [] = []
           fold inp' = let (s',p) = runParser splitChunk (inp',()) in if isJust p then fromJust p : fold s' else fold s'
 
-
-
-
 splitChunk :: Parser String a (Maybe (M.HashMap String String))
 splitChunk = Parser $ \(s,_) -> let (rs,x) = getChunk (s,[]) in (rs,M.fromList <$> traverse parseKey (words x))
     where getChunk (a,xs) = case a of

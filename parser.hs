@@ -1,10 +1,11 @@
 {-# LANGUAGE LambdaCase #-}
+module Parser (Parser,parseChar,parseString,parseCharIf,parseInt,parseWord,pads,ignoreChar,ignoreCharIf,runParser,oneOf) where
 import  Data.Bifunctor 
 import Control.Applicative
 import Data.Char as C
 import Debug.Trace
 import qualified Data.Set as S
-
+import Data.Foldable
 newtype Parser a = Parser {runParser :: String -> Maybe (a,String) }
 
 instance Functor Parser where
@@ -25,9 +26,11 @@ instance Alternative Parser where
 parseChar :: Char -> Parser Char
 parseChar c = Parser $ \case {(x:xs) -> if  x ==c then Just (c,xs) else Nothing; [] -> Nothing}
 
+ignoreChar c = Parser $ \case {(x:xs) -> if x == c then Just (c,xs) else Just (c,x:xs); [] -> Nothing}
+ignoreCharIf prd = Parser $ \case {x:xs -> if prd x then Just (x,xs) else Just (x,x:xs); [] -> Nothing}
+
 parseString :: String -> Parser String
 parseString s = traverse parseChar s 
-
 
 pads :: Parser String
 pads = many (parseCharIf (==' '))
@@ -36,27 +39,10 @@ parseWord :: Parser String
 parseWord = pads *> some (parseCharIf (/=' '))
 
 parseInt :: Parser Int
-parseInt = read <$> some (parseCharIf (C.isDigit))
+parseInt = read <$> some (parseCharIf (\c -> C.isDigit c || c=='-' ))
 
 parseCharIf :: (Char -> Bool) -> Parser Char
 parseCharIf p = Parser $ \x -> case x of { (x:xs) -> if p x then Just (x,xs) else Nothing; [] -> Nothing}
 
-type Question = Char
-parseRow :: Parser [Char]
-parseRow = some (parseCharIf (/='\n')) 
-
-parseGroup :: Parser [[Char]]
-parseGroup = many (  (\x -> trace (show x) x)<$> (parseRow <* parseChar '\n'))
-
-
-parseAll :: Parser [[[Char]]]
-parseAll = many (parseGroup <* parseChar '\n') <**> ((:) <$> parseGroup)
-
-main = do
-	Just (s,_) <- fmap (runParser parseAll) $ readFile "day6inp"  
-	print $ foldr (+) 0 $ map ( length . S.toList . S.fromList . concat) s 
-	print $ foldr (+) 0 $ map (totalElems) s
-
-totalElems :: [[Char]] -> Int
-totalElems xs = length $ filter (id) $ map (\e -> and $ map (e`elem`) xs) set
-	where set = S.toList . S.fromList . concat$ xs
+oneOf :: [Parser a] -> Parser a
+oneOf = foldl' (<|>) empty
